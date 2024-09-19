@@ -57,7 +57,7 @@ func (m *Onepassword) FindSecret(
 
 	for _, field := range item.Fields {
 		if field.Title == fieldName {
-			dagger.Connect().SetSecret(fieldName, field.Value)
+			return dagger.Connect().SetSecret(fieldName, field.Value), nil
 		}
 	}
 
