@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"dagger/replicated/internal/dagger"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -26,10 +25,9 @@ type Cluster struct {
 //
 // Example:
 //
-// dagger call cluster-create --name=my-cluster --wait=10m --ttl=20m --distribution=k3s --version=1.31.0 --token=env:REPLICATED_API_TOKEN
+// dagger call -m github.com/replicatedhq/daggerverse/replicated --token=env:REPLICATED_API_TOKEN cluster-create --name=my-cluster --wait=10m --ttl=20m --distribution=k3s --version=1.31.0
 func (m *Replicated) ClusterCreate(
 	ctx context.Context,
-	token *dagger.Secret,
 	// Name of the cluster
 	// +optional
 	name string,
@@ -48,14 +46,8 @@ func (m *Replicated) ClusterCreate(
 	// Number of nodes to create
 	// +default="1"
 	nodes int,
-	// +optional
-	apiOrigin string,
-	// +optional
-	idOrigin string,
-	// +optional
-	registryOrigin string,
 ) (*Cluster, error) {
-	replicated := m.ReplicatedContainer(ctx, token, apiOrigin, idOrigin, registryOrigin)
+	replicated := m.Container()
 
 	cmd := []string{
 		"/replicated",
@@ -120,21 +112,13 @@ func (m *Replicated) ClusterCreate(
 //
 // Example:
 //
-// dagger call cluster-remove --cluster-id=my-cluster --token=env:REPLICATED_API_TOKEN
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-remove --cluster-id=my-cluster
 func (m *Replicated) ClusterRemove(
 	ctx context.Context,
-	token *dagger.Secret,
 	// Cluster ID of the cluster to remove
 	clusterID string,
-	// +optional
-	apiOrigin string,
-	// +optional
-	idOrigin string,
-	// +optional
-	registryOrigin string,
 ) (string, error) {
-
-	replicated := m.ReplicatedContainer(ctx, token, apiOrigin, idOrigin, registryOrigin)
+	replicated := m.Container()
 	return replicated.With(
 		cacheBustingExec(
 			[]string{
@@ -151,22 +135,15 @@ func (m *Replicated) ClusterRemove(
 //
 // Example:
 //
-// dagger call cluster-expose-port --cluster-id=my-cluster --node-port=80 --token=env:REPLICATED_API_TOKEN
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster --node-port=80
 func (m *Replicated) ClusterExposePort(
 	ctx context.Context,
-	token *dagger.Secret,
 	// Cluster ID of the cluster to remove
 	clusterID string,
-	// +optional
-	apiOrigin string,
-	// +optional
-	idOrigin string,
-	// +optional
-	registryOrigin string,
 	// Port to expose
 	nodePort int,
 ) (string, error) {
-	replicated := m.ReplicatedContainer(ctx, token, apiOrigin, idOrigin, registryOrigin)
+	replicated := m.Container()
 	portExposeOutput, err := replicated.With(
 		cacheBustingExec(
 			[]string{

@@ -2,17 +2,19 @@
 package main
 
 import (
-	"context"
 	"dagger/replicated/internal/dagger"
 	"time"
 )
 
 // Replicated is a Dagger module that provides access to the replicated CLI
-type Replicated struct{}
+type Replicated struct {
+	Token          *dagger.Secret
+	APIOrigin      string
+	IDOrigin       string
+	RegistryOrigin string
+}
 
-// Obtain the base container with the replicated CLI installed at `/replicated`
-func (m *Replicated) ReplicatedContainer(
-	ctx context.Context,
+func New(
 	token *dagger.Secret,
 	// +optional
 	apiOrigin string,
@@ -20,20 +22,30 @@ func (m *Replicated) ReplicatedContainer(
 	idOrigin string,
 	// +optional
 	registryOrigin string,
-) *dagger.Container {
+) *Replicated {
+	return &Replicated{
+		Token:          token,
+		APIOrigin:      apiOrigin,
+		IDOrigin:       idOrigin,
+		RegistryOrigin: registryOrigin,
+	}
+}
+
+// Obtain the base container with the replicated CLI installed at `/replicated`
+func (m *Replicated) Container() *dagger.Container {
 	ctr := dag.Container(dagger.ContainerOpts{
 		Platform: dagger.Platform("linux/amd64"),
 	}).From("replicated/vendor-cli:latest").
-		WithSecretVariable("REPLICATED_API_TOKEN", token)
+		WithSecretVariable("REPLICATED_API_TOKEN", m.Token)
 
-	if apiOrigin != "" {
-		ctr = ctr.WithEnvVariable("REPLICATED_API_ORIGIN", apiOrigin)
+	if m.APIOrigin != "" {
+		ctr = ctr.WithEnvVariable("REPLICATED_API_ORIGIN", m.APIOrigin)
 	}
-	if idOrigin != "" {
-		ctr = ctr.WithEnvVariable("REPLICATED_ID_ORIGIN", idOrigin)
+	if m.IDOrigin != "" {
+		ctr = ctr.WithEnvVariable("REPLICATED_ID_ORIGIN", m.IDOrigin)
 	}
-	if registryOrigin != "" {
-		ctr = ctr.WithEnvVariable("REPLICATED_REGISTRY_ORIGIN", registryOrigin)
+	if m.RegistryOrigin != "" {
+		ctr = ctr.WithEnvVariable("REPLICATED_REGISTRY_ORIGIN", m.RegistryOrigin)
 	}
 	return ctr
 }
