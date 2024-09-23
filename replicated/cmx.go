@@ -41,7 +41,7 @@ func (m *Replicated) ClusterCreate(
 	// +default="k3s"
 	distribution string,
 	// Version of the distribution to use
-	// +default="1.31.0"
+	// +optional
 	version string,
 	// Number of nodes to create
 	// +default="1"
@@ -54,7 +54,6 @@ func (m *Replicated) ClusterCreate(
 		"cluster",
 		"create",
 		"--distribution", distribution,
-		"--version", version,
 		"--output", "json",
 	}
 
@@ -68,6 +67,10 @@ func (m *Replicated) ClusterCreate(
 
 	if ttl != "" {
 		cmd = append(cmd, "--ttl", ttl)
+	}
+
+	if version != "" {
+		cmd = append(cmd, "--version", version)
 	}
 
 	if nodes != 0 {
