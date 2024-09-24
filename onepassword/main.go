@@ -30,6 +30,9 @@ func (m *Onepassword) FindSecret(
 	// Name of the item to find
 	itemName string,
 
+	// Name of the section to search (optional)
+	sectionName string,
+
 	// Name of the field to find
 	fieldName string,
 ) (*dagger.Secret, error) {
@@ -55,8 +58,28 @@ func (m *Onepassword) FindSecret(
 
 	item, err := client.Items.Get(ctx, vault.ID, itemOverview.ID)
 
+	// If sectionName is empty, search top-level fields only
+	if sectionName == "" {
+		for _, field := range item.Fields {
+			if field.Title == fieldName {
+				return dagger.Connect().SetSecret(fieldName, field.Value), nil
+			}
+		}
+		return nil, ErrFieldNotFound
+	}
+
+	var sectionID string = ""
+
+	// Search in the specified section
+	for _, section := range item.Sections {
+		if section.Title == sectionName {
+			sectionID = section.ID
+
+		}
+	}
+
 	for _, field := range item.Fields {
-		if field.Title == fieldName {
+		if field.Title == fieldName && field.SectionID != nil && *field.SectionID == sectionID {
 			return dagger.Connect().SetSecret(fieldName, field.Value), nil
 		}
 	}
@@ -76,6 +99,9 @@ func (m *Onepassword) PutSecret(
 
 	// Name of the item to find
 	itemName string,
+
+	// Name of the section to search (optional)
+	sectionName string,
 
 	// Name of the field to find
 	fieldName string,
