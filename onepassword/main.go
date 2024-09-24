@@ -68,14 +68,19 @@ func (m *Onepassword) FindSecret(
 		return nil, ErrFieldNotFound
 	}
 
+	var sectionID string = ""
+
 	// Search in the specified section
 	for _, section := range item.Sections {
 		if section.Title == sectionName {
-			for _, field := range item.Fields {
-				if field.Title == fieldName {
-					return dagger.Connect().SetSecret(fieldName, field.Value), nil
-				}
-			}
+			sectionID = section.ID
+
+		}
+	}
+
+	for _, field := range item.Fields {
+		if field.Title == fieldName && field.SectionID != nil && *field.SectionID == sectionID {
+			return dagger.Connect().SetSecret(fieldName, field.Value), nil
 		}
 	}
 
@@ -94,6 +99,9 @@ func (m *Onepassword) PutSecret(
 
 	// Name of the item to find
 	itemName string,
+
+	// Name of the section to search (optional)
+	sectionName string,
 
 	// Name of the field to find
 	fieldName string,
