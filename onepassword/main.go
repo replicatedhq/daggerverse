@@ -12,9 +12,10 @@ import (
 type Onepassword struct{}
 
 var (
-	ErrVaultNotFound = errors.New("vault not found")
-	ErrItemNotFound  = errors.New("item not found")
-	ErrFieldNotFound = errors.New("field not found")
+	ErrVaultNotFound   = errors.New("vault not found")
+	ErrItemNotFound    = errors.New("item not found")
+	ErrFieldNotFound   = errors.New("field not found")
+	ErrSectionNotFound = errors.New("section not found")
 )
 
 // Returns the value of a secret from the specificed vault, with the specified name and field.
@@ -32,6 +33,10 @@ func (m *Onepassword) FindSecret(
 
 	// Name of the field to find
 	fieldName string,
+
+	// Limit to a specific section of the item
+	// +optional
+	section string,
 ) (*dagger.Secret, error) {
 	serviceAccountPlaintext, err := serviceAccount.Plaintext(ctx)
 	if err != nil {
@@ -55,9 +60,16 @@ func (m *Onepassword) FindSecret(
 
 	item, err := client.Items.Get(ctx, vault.ID, itemOverview.ID)
 
+	sectionID, err := findSectionID(item, section)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, field := range item.Fields {
-		if field.Title == fieldName {
-			return dagger.Connect().SetSecret(fieldName, field.Value), nil
+		if section == "" || (field.SectionID != nil && *field.SectionID == sectionID) {
+			if field.Title == fieldName {
+				return dagger.Connect().SetSecret(fieldName, field.Value), nil
+			}
 		}
 	}
 
@@ -163,4 +175,17 @@ func findItem(ctx context.Context, client *onepassword.Client, vaultID string, i
 			return i, nil
 		}
 	}
+}
+
+func findSectionID(item onepassword.Item, sectionName string) (string, error) {
+	if sectionName == "" {
+		return "", nil
+	}
+
+	for _, s := range item.Sections {
+		if s.Title == sectionName {
+			return s.ID, nil
+		}
+	}
+	return "", ErrSectionNotFound
 }
