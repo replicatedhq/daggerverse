@@ -4,7 +4,6 @@ import (
 	"context"
 	"dagger/onepassword/internal/dagger"
 	"errors"
-	"fmt"
 
 	onepassword "github.com/1password/onepassword-sdk-go"
 )
@@ -89,14 +88,14 @@ func (m *Onepassword) PutSecret(
 	// Name of the vault to search
 	vaultName string,
 
-	// Name of the item to find
+	// Name of the item to update or create
 	itemName string,
 
-	// Name of the field to find
+	// Name of the field to update or create
 	fieldName string,
 
 	// Value to set
-	value string,
+	value *dagger.Secret,
 ) error {
 	serviceAccountPlaintext, err := serviceAccount.Plaintext(ctx)
 	if err != nil {
@@ -134,7 +133,15 @@ func (m *Onepassword) PutSecret(
 		itemOverview = io
 	}
 
-	fmt.Printf("itemOverview: %+v\n", itemOverview)
+	item, err := client.Items.Get(ctx, vault.ID, itemOverview.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = upsertField(ctx, client, item, fieldName, value)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -194,4 +201,25 @@ func findSectionID(item onepassword.Item, sectionName string) (string, error) {
 		}
 	}
 	return "", ErrSectionNotFound
+}
+
+func upsertField(ctx context.Context, client *onepassword.Client, item onepassword.Item, fieldName string, value *dagger.Secret) (onepassword.Item, error) {
+	plainValue, err := value.Plaintext(ctx)
+	if err != nil {
+		return item, err
+	}
+
+	for i, field := range item.Fields {
+		if field.Title == fieldName {
+			item.Fields[i].Value = plainValue
+			return client.Items.Put(ctx, item)
+		}
+	}
+
+	item.Fields = append(item.Fields, onepassword.ItemField{
+		Title: fieldName,
+		Value: plainValue,
+	})
+
+	return client.Items.Put(ctx, item)
 }
