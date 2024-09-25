@@ -47,6 +47,9 @@ func (m *Onepassword) FindSecret(
 		onepassword.WithServiceAccountToken(serviceAccountPlaintext),
 		onepassword.WithIntegrationInfo("Dagger Workflow", "v0.0.1"),
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	vault, err := findVault(ctx, client, vaultName)
 	if err != nil {
