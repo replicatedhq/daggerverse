@@ -21,6 +21,17 @@ type Cluster struct {
 	Kubeconfig string
 }
 
+type ClusterVersions struct {
+	ClusterVersions []*ClusterVersion `json:"cluster-versions"`
+}
+
+type ClusterVersion struct {
+	Name          string   `json:"short_name"`
+	Versions      []string `json:"versions"`
+	InstanceTypes []string `json:"instance_types"`
+	NodesMax      int      `json:"nodes_max"`
+}
+
 // Create a new CMX cluster
 //
 // Example:
@@ -176,4 +187,33 @@ func (m *Replicated) ClusterExposePort(
 	}
 
 	return postExposeOutput.HostName, nil
+}
+
+// Get the available cluster versions
+//
+// Example:
+//
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-versions
+func (m *Replicated) ClusterVersions(ctx context.Context) (*ClusterVersions, error) {
+	replicated := m.Container()
+
+	cmd := []string{
+		"/replicated",
+		"cluster",
+		"versions",
+	}
+
+	versions := replicated.With(cacheBustingExec(cmd))
+
+	stdout, err := versions.Stdout(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cv := ClusterVersions{}
+	if err := json.Unmarshal([]byte(stdout), &cv); err != nil {
+		return nil, err
+	}
+
+	return &cv, nil
 }
