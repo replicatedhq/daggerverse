@@ -21,10 +21,6 @@ type Cluster struct {
 	Kubeconfig string
 }
 
-type ClusterVersions struct {
-	ClusterVersions []*ClusterVersion `json:"cluster-versions"`
-}
-
 type ClusterVersion struct {
 	Name          string   `json:"short_name"`
 	Versions      []string `json:"versions"`
@@ -194,13 +190,14 @@ func (m *Replicated) ClusterExposePort(
 // Example:
 //
 // dagger call --token=env:REPLICATED_API_TOKEN cluster-versions
-func (m *Replicated) ClusterVersions(ctx context.Context) (*ClusterVersions, error) {
+func (m *Replicated) ClusterVersions(ctx context.Context) (*[]ClusterVersion, error) {
 	replicated := m.Container()
 
 	cmd := []string{
 		"/replicated",
 		"cluster",
 		"versions",
+		"--output", "json",
 	}
 
 	versions := replicated.With(cacheBustingExec(cmd))
@@ -210,7 +207,7 @@ func (m *Replicated) ClusterVersions(ctx context.Context) (*ClusterVersions, err
 		return nil, err
 	}
 
-	cv := ClusterVersions{}
+	cv := []ClusterVersion{}
 	if err := json.Unmarshal([]byte(stdout), &cv); err != nil {
 		return nil, err
 	}
