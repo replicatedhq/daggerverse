@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 )
 
 // networkJSON is an unexported middleman structfor unmarshaling JSON with the dagger reserved "id" field
@@ -50,7 +51,7 @@ func networkFromJSON(nj networkJSON) Network {
 //
 // Example:
 //
-// dagger call -m github.com/replicatedhq/daggerverse/replicated --token=env:REPLICATED_API_TOKEN network-create --name=my-network --wait=10m --ttl=20m
+// dagger call --token=env:REPLICATED_API_TOKEN network-create --name=my-network --wait=10m --ttl=20m
 func (m *Replicated) NetworkCreate(
 	ctx context.Context,
 	// Name of the network
@@ -62,7 +63,7 @@ func (m *Replicated) NetworkCreate(
 	// TTL of the network
 	// +default="20m"
 	ttl string,
-) (*Network, error) {
+) ([]Network, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -91,64 +92,91 @@ func (m *Replicated) NetworkCreate(
 		return nil, err
 	}
 
-	var networkJsonData networkJSON
-	if err := json.Unmarshal([]byte(stdout), &networkJsonData); err != nil {
+	var networkJSONList []networkJSON
+	if err := json.Unmarshal([]byte(stdout), &networkJSONList); err != nil {
 		return nil, err
 	}
 
-	network := networkFromJSON(networkJsonData)
-	return &network, nil
+	// Convert all networks from the JSON response
+	networkList := make([]Network, len(networkJSONList))
+	for i, networkJSON := range networkJSONList {
+		networkList[i] = networkFromJSON(networkJSON)
+	}
+
+	return networkList, nil
 }
 
 // Remove a CMX network
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN network-remove --network-id=my-network
+// dagger call --token=env:REPLICATED_API_TOKEN network-remove --network-id=my-network-id
+// dagger call --token=env:REPLICATED_API_TOKEN network-remove --network-name=my-network-name
 func (m *Replicated) NetworkRemove(
 	ctx context.Context,
 	// Network ID of the network to remove
+	// +optional
 	networkID string,
+	// Network name of the network to remove
+	// +optional
+	networkName string,
 ) (string, error) {
 	replicated := m.Container()
-	return replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"network",
-				"rm",
-				networkID,
-			},
-		),
-	).Stdout(ctx)
+
+	cmd := []string{
+		"/replicated",
+		"network",
+		"rm",
+	}
+
+	if networkID != "" {
+		cmd = append(cmd, networkID)
+	} else if networkName != "" {
+		cmd = append(cmd, "--name", networkName)
+	} else {
+		return "", fmt.Errorf("either network-id or network-name must be specified")
+	}
+
+	return replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 }
 
 // Update a CMX network policy
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN network-update-policy --network-id=my-network --policy=airgap
+// dagger call --token=env:REPLICATED_API_TOKEN network-update-policy --network-id=my-network-id --policy=airgap
+// dagger call --token=env:REPLICATED_API_TOKEN network-update-policy --network-name=my-network-name --policy=airgap
 func (m *Replicated) NetworkUpdatePolicy(
 	ctx context.Context,
 	// Network ID to update
+	// +optional
 	networkID string,
+	// Network name to update
+	// +optional
+	networkName string,
 	// New policy for the network (e.g., "airgap")
 	policy string,
 ) (string, error) {
 	replicated := m.Container()
-	return replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"network",
-				"update",
-				"policy",
-				networkID,
-				"--policy", policy,
-				"--output", "json",
-			},
-		),
-	).Stdout(ctx)
+
+	cmd := []string{
+		"/replicated",
+		"network",
+		"update",
+		"policy",
+	}
+
+	if networkID != "" {
+		cmd = append(cmd, networkID)
+	} else if networkName != "" {
+		cmd = append(cmd, "--name", networkName)
+	} else {
+		return "", fmt.Errorf("either network-id or network-name must be specified")
+	}
+
+	cmd = append(cmd, "--policy", policy, "--output", "json")
+
+	return replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 }
 
 // List all CMX networks

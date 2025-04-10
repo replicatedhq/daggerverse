@@ -55,6 +55,8 @@ type VM struct {
 
 // vmFromJSON creates a VM from a vmJSON struct
 func vmFromJSON(vj vmJSON) VM {
+	//nolint:gosimple // We're using a middleman struct here to work around
+	// the dagger "id" field reservation.
 	return VM{
 		ItemID:            vj.ItemID,
 		Name:              vj.Name,
@@ -165,30 +167,41 @@ func (m *Replicated) VMCreate(
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN vm-remove --vm-id=my-vm
+// dagger call --token=env:REPLICATED_API_TOKEN vm-remove --vm-id=my-vm-id
+// dagger call --token=env:REPLICATED_API_TOKEN vm-remove --vm-name=my-vm-name
 func (m *Replicated) VMRemove(
 	ctx context.Context,
 	// VM ID of the VM to remove
+	// +optional
 	vmID string,
+	// VM name of the VM to remove
+	// +optional
+	vmName string,
 ) (string, error) {
 	replicated := m.Container()
-	return replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"vm",
-				"rm",
-				vmID,
-			},
-		),
-	).Stdout(ctx)
+
+	cmd := []string{
+		"/replicated",
+		"vm",
+		"rm",
+	}
+
+	if vmID != "" {
+		cmd = append(cmd, vmID)
+	} else if vmName != "" {
+		cmd = append(cmd, "--name", vmName)
+	} else {
+		return "", fmt.Errorf("either vm-id or vm-name must be specified")
+	}
+
+	return replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 }
 
 // Expose a port on a CMX VM, returning the hostname of the exposed port
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm --vm-port=80
+// dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm-id --vm-port=80
 func (m *Replicated) VMExposePort(
 	ctx context.Context,
 	// VM ID of the VM to expose port on
@@ -197,20 +210,19 @@ func (m *Replicated) VMExposePort(
 	vmPort int,
 ) (string, error) {
 	replicated := m.Container()
-	portExposeOutput, err := replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"vm",
-				"port",
-				"expose",
-				vmID,
-				"--port", strconv.Itoa(vmPort),
-				"--protocol", "https",
-				"--output", "json",
-			},
-		),
-	).Stdout(ctx)
+
+	cmd := []string{
+		"/replicated",
+		"vm",
+		"port",
+		"expose",
+		vmID,
+		"--port", strconv.Itoa(vmPort),
+		"--protocol", "https",
+		"--output", "json",
+	}
+
+	portExposeOutput, err := replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 	if err != nil {
 		return "", err
 	}

@@ -196,17 +196,18 @@ func (m *Replicated) ClusterCreate(
 
 	cluster := clusterFromJSON(clusterJsonData)
 
-	kubeconfig, err := replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"cluster",
-				"kubeconfig",
-				"--stdout",
-				clusterJsonData.ID,
-			},
-		),
-	).Stdout(ctx)
+	// Get the kubeconfig using the cluster ID
+	kubeconfigCmd := []string{
+		"/replicated",
+		"cluster",
+		"kubeconfig",
+		"--stdout",
+	}
+
+	// Always use the ID for fetching kubeconfig since we just created the cluster
+	kubeconfigCmd = append(kubeconfigCmd, clusterJsonData.ID)
+
+	kubeconfig, err := replicated.With(cacheBustingExec(kubeconfigCmd)).Stdout(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -221,52 +222,62 @@ func (m *Replicated) ClusterCreate(
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN cluster-remove --cluster-id=my-cluster
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-remove --cluster-id=my-cluster-id
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-remove --cluster-name=my-cluster-name
 func (m *Replicated) ClusterRemove(
 	ctx context.Context,
 	// Cluster ID of the cluster to remove
+	// +optional
 	clusterID string,
+	// Cluster name of the cluster to remove
+	// +optional
+	clusterName string,
 ) (string, error) {
 	replicated := m.Container()
-	return replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"cluster",
-				"rm",
-				clusterID,
-			},
-		),
-	).Stdout(ctx)
+
+	cmd := []string{
+		"/replicated",
+		"cluster",
+		"rm",
+	}
+
+	if clusterID != "" {
+		cmd = append(cmd, clusterID)
+	} else if clusterName != "" {
+		cmd = append(cmd, "--name", clusterName)
+	} else {
+		return "", fmt.Errorf("either cluster-id or cluster-name must be specified")
+	}
+
+	return replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 }
 
 // Expose a port on a CMX cluster, returning the hostname of the exposed port
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster --node-port=80
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster-id --node-port=80
 func (m *Replicated) ClusterExposePort(
 	ctx context.Context,
-	// Cluster ID of the cluster to remove
+	// Cluster ID of the cluster to expose port on
 	clusterID string,
 	// Port to expose
 	nodePort int,
 ) (string, error) {
 	replicated := m.Container()
-	portExposeOutput, err := replicated.With(
-		cacheBustingExec(
-			[]string{
-				"/replicated",
-				"cluster",
-				"port",
-				"expose",
-				clusterID,
-				"--port", strconv.Itoa(nodePort),
-				"--protocol", "https",
-				"--output", "json",
-			},
-		),
-	).Stdout(ctx)
+
+	cmd := []string{
+		"/replicated",
+		"cluster",
+		"port",
+		"expose",
+		clusterID,
+		"--port", strconv.Itoa(nodePort),
+		"--protocol", "https",
+		"--output", "json",
+	}
+
+	portExposeOutput, err := replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 	if err != nil {
 		return "", err
 	}
