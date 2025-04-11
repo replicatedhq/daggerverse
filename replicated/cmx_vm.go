@@ -81,8 +81,8 @@ func vmFromJSON(vj vmJSON) VM {
 //
 // Example:
 //
-// dagger call -m github.com/replicatedhq/daggerverse/replicated --token=env:REPLICATED_API_TOKEN vm-create --name=my-vm --wait=10m --ttl=20m --distribution=ubuntu --version=20.04
-func (m *Replicated) VMCreate(
+// dagger call -m github.com/replicatedhq/daggerverse/replicated --token=env:REPLICATED_API_TOKEN vm-create --name=my-vm --wait=10m --ttl=20m --distribution=ubuntu --version=22.04
+func (m *Replicated) VmCreate(
 	ctx context.Context,
 	// Name of the VM
 	// +optional
@@ -169,7 +169,7 @@ func (m *Replicated) VMCreate(
 //
 // dagger call --token=env:REPLICATED_API_TOKEN vm-remove --vm-id=my-vm-id
 // dagger call --token=env:REPLICATED_API_TOKEN vm-remove --vm-name=my-vm-name
-func (m *Replicated) VMRemove(
+func (m *Replicated) VmRemove(
 	ctx context.Context,
 	// VM ID of the VM to remove
 	// +optional
@@ -202,7 +202,7 @@ func (m *Replicated) VMRemove(
 // Example:
 //
 // dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm-id --vm-port=80
-func (m *Replicated) VMExposePort(
+func (m *Replicated) VmExposePort(
 	ctx context.Context,
 	// VM ID of the VM to expose port on
 	vmID string,
@@ -245,7 +245,7 @@ func (m *Replicated) VMExposePort(
 // Example:
 //
 // dagger call --token=env:REPLICATED_API_TOKEN vm-versions
-func (m *Replicated) VMVersions(ctx context.Context) (*[]VMVersion, error) {
+func (m *Replicated) VmVersions(ctx context.Context) (*[]VMVersion, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -275,7 +275,7 @@ func (m *Replicated) VMVersions(ctx context.Context) (*[]VMVersion, error) {
 // Example:
 //
 // dagger call --token=env:REPLICATED_API_TOKEN vm-list --show-terminated=true --start-time=2023-01-01T00:00:00Z
-func (m *Replicated) VMList(
+func (m *Replicated) VmList(
 	ctx context.Context,
 	// When set, only show terminated VMs
 	// +optional
