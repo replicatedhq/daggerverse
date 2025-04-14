@@ -93,6 +93,11 @@ type Cluster struct {
 	Kubeconfig               string // Not part of the API response, populated after creation
 }
 
+type PortExpose struct {
+	HostName string `json:"hostname"`
+	State    string `json:"state"`
+}
+
 // clusterFromJSON creates a Cluster from a clusterJSON struct
 func clusterFromJSON(cj clusterJSON) Cluster {
 	nodeGroups := make([]NodeGroup, len(cj.NodeGroups))
@@ -256,14 +261,16 @@ func (m *Replicated) ClusterRemove(
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster-id --node-port=80
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster-id --node-port=80 --protocol=http
 func (m *Replicated) ClusterExposePort(
 	ctx context.Context,
 	// Cluster ID of the cluster to expose port on
 	clusterID string,
 	// Port to expose
 	nodePort int,
-) (string, error) {
+	// Protocol to use
+	protocol string,
+) (*PortExpose, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -273,26 +280,21 @@ func (m *Replicated) ClusterExposePort(
 		"expose",
 		clusterID,
 		"--port", strconv.Itoa(nodePort),
-		"--protocol", "https",
+		"--protocol", protocol,
 		"--output", "json",
 	}
 
 	portExposeOutput, err := replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 	if err != nil {
-		return "", err
-	}
-
-	type PortExpose struct {
-		HostName string `json:"hostname"`
-		State    string `json:"state"`
+		return nil, err
 	}
 
 	postExposeOutput := PortExpose{}
 	if err := json.Unmarshal([]byte(portExposeOutput), &postExposeOutput); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return postExposeOutput.HostName, nil
+	return &postExposeOutput, nil
 }
 
 // Get the available cluster versions

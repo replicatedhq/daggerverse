@@ -13,7 +13,7 @@ type VMVersion struct {
 	InstanceTypes []string `json:"instance_types"`
 }
 
-// vmJSON is an unexported middleman structfor unmarshaling JSON with the reserved "id" field
+// vmJSON is an unexported middleman struct for unmarshaling JSON with the reserved "id" field
 type vmJSON struct {
 	ItemID            string   `json:"id"`
 	Name              string   `json:"name"`
@@ -201,14 +201,16 @@ func (m *Replicated) VmRemove(
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm-id --vm-port=80
+// dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm-id --vm-port=80 --protocol=http
 func (m *Replicated) VmExposePort(
 	ctx context.Context,
 	// VM ID of the VM to expose port on
 	vmID string,
 	// Port to expose
 	vmPort int,
-) (string, error) {
+	// Protocol to use
+	protocol string,
+) (*PortExpose, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -218,26 +220,21 @@ func (m *Replicated) VmExposePort(
 		"expose",
 		vmID,
 		"--port", strconv.Itoa(vmPort),
-		"--protocol", "https",
+		"--protocol", protocol,
 		"--output", "json",
 	}
 
 	portExposeOutput, err := replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 	if err != nil {
-		return "", err
-	}
-
-	type PortExpose struct {
-		HostName string `json:"hostname"`
-		State    string `json:"state"`
+		return nil, err
 	}
 
 	postExposeOutput := PortExpose{}
 	if err := json.Unmarshal([]byte(portExposeOutput), &postExposeOutput); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return postExposeOutput.HostName, nil
+	return &postExposeOutput, nil
 }
 
 // Get the available VM versions
