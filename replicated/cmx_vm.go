@@ -13,7 +13,7 @@ type VMVersion struct {
 	InstanceTypes []string `json:"instance_types"`
 }
 
-// vmJSON is an unexported middleman structfor unmarshaling JSON with the reserved "id" field
+// vmJSON is an unexported middleman struct for unmarshaling JSON with the reserved "id" field
 type vmJSON struct {
 	ItemID            string   `json:"id"`
 	Name              string   `json:"name"`
