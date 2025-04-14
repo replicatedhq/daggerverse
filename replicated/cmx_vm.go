@@ -210,7 +210,7 @@ func (m *Replicated) VmExposePort(
 	vmPort int,
 	// Protocol to use
 	protocol string,
-) (string, error) {
+) (*PortExpose, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -226,20 +226,15 @@ func (m *Replicated) VmExposePort(
 
 	portExposeOutput, err := replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 	if err != nil {
-		return "", err
-	}
-
-	type PortExpose struct {
-		HostName string `json:"hostname"`
-		State    string `json:"state"`
+		return nil, err
 	}
 
 	postExposeOutput := PortExpose{}
 	if err := json.Unmarshal([]byte(portExposeOutput), &postExposeOutput); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return postExposeOutput.HostName, nil
+	return &postExposeOutput, nil
 }
 
 // Get the available VM versions

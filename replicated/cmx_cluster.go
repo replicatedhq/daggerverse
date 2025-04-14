@@ -93,6 +93,11 @@ type Cluster struct {
 	Kubeconfig               string // Not part of the API response, populated after creation
 }
 
+type PortExpose struct {
+	HostName string `json:"hostname"`
+	State    string `json:"state"`
+}
+
 // clusterFromJSON creates a Cluster from a clusterJSON struct
 func clusterFromJSON(cj clusterJSON) Cluster {
 	nodeGroups := make([]NodeGroup, len(cj.NodeGroups))
@@ -265,7 +270,7 @@ func (m *Replicated) ClusterExposePort(
 	nodePort int,
 	// Protocol to use
 	protocol string,
-) (string, error) {
+) (*PortExpose, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -281,20 +286,15 @@ func (m *Replicated) ClusterExposePort(
 
 	portExposeOutput, err := replicated.With(cacheBustingExec(cmd)).Stdout(ctx)
 	if err != nil {
-		return "", err
-	}
-
-	type PortExpose struct {
-		HostName string `json:"hostname"`
-		State    string `json:"state"`
+		return nil, err
 	}
 
 	postExposeOutput := PortExpose{}
 	if err := json.Unmarshal([]byte(portExposeOutput), &postExposeOutput); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return postExposeOutput.HostName, nil
+	return &postExposeOutput, nil
 }
 
 // Get the available cluster versions
