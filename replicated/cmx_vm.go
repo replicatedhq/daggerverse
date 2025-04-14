@@ -108,7 +108,7 @@ func (m *Replicated) VmCreate(
 	// Instance type to use
 	// +optional
 	instanceType string,
-) (*VM, error) {
+) ([]VM, error) {
 	replicated := m.Container()
 
 	cmd := []string{
@@ -154,13 +154,22 @@ func (m *Replicated) VmCreate(
 		return nil, err
 	}
 
-	var vmJsonData vmJSON
-	if err := json.Unmarshal([]byte(stdout), &vmJsonData); err != nil {
-		return nil, err
+	var vmJSONList []vmJSON
+	if err := json.Unmarshal([]byte(stdout), &vmJSONList); err != nil {
+		// Try unmarshaling as a single VM if array fails
+		var vmJSONData vmJSON
+		if err := json.Unmarshal([]byte(stdout), &vmJSONData); err != nil {
+			return nil, err
+		}
+		vmJSONList = []vmJSON{vmJSONData}
 	}
 
-	vm := vmFromJSON(vmJsonData)
-	return &vm, nil
+	vmList := make([]VM, len(vmJSONList))
+	for i, vmData := range vmJSONList {
+		vmList[i] = vmFromJSON(vmData)
+	}
+
+	return vmList, nil
 }
 
 // Remove a CMX VM
