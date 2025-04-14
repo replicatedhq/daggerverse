@@ -256,13 +256,15 @@ func (m *Replicated) ClusterRemove(
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster-id --node-port=80
+// dagger call --token=env:REPLICATED_API_TOKEN cluster-expose-port --cluster-id=my-cluster-id --node-port=80 --protocol=http
 func (m *Replicated) ClusterExposePort(
 	ctx context.Context,
 	// Cluster ID of the cluster to expose port on
 	clusterID string,
 	// Port to expose
 	nodePort int,
+	// Protocol to use
+	protocol string,
 ) (string, error) {
 	replicated := m.Container()
 
@@ -273,7 +275,7 @@ func (m *Replicated) ClusterExposePort(
 		"expose",
 		clusterID,
 		"--port", strconv.Itoa(nodePort),
-		"--protocol", "https",
+		"--protocol", protocol,
 		"--output", "json",
 	}
 

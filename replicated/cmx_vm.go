@@ -201,13 +201,15 @@ func (m *Replicated) VmRemove(
 //
 // Example:
 //
-// dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm-id --vm-port=80
+// dagger call --token=env:REPLICATED_API_TOKEN vm-expose-port --vm-id=my-vm-id --vm-port=80 --protocol=http
 func (m *Replicated) VmExposePort(
 	ctx context.Context,
 	// VM ID of the VM to expose port on
 	vmID string,
 	// Port to expose
 	vmPort int,
+	// Protocol to use
+	protocol string,
 ) (string, error) {
 	replicated := m.Container()
 
@@ -218,7 +220,7 @@ func (m *Replicated) VmExposePort(
 		"expose",
 		vmID,
 		"--port", strconv.Itoa(vmPort),
-		"--protocol", "https",
+		"--protocol", protocol,
 		"--output", "json",
 	}
 
