@@ -108,6 +108,9 @@ func (m *Replicated) VmCreate(
 	// Instance type to use
 	// +optional
 	instanceType string,
+	// network to use for VMs, if not specified, a new network will be created
+	// +optional
+	network string,
 ) ([]VM, error) {
 	replicated := m.Container()
 
