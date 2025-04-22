@@ -150,6 +150,10 @@ func (m *Replicated) VmCreate(
 		cmd = append(cmd, "--instance-type", instanceType)
 	}
 
+	if network != "" {
+		cmd = append(cmd, "--network", network)
+	}
+
 	containerWithCmd := replicated.With(cacheBustingExec(cmd))
 
 	stdout, err := containerWithCmd.Stdout(ctx)
