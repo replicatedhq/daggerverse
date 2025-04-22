@@ -101,7 +101,7 @@ func (m *Replicated) VmCreate(
 	version string,
 	// Number of VMs to create, each share a network
 	// +default="1"
-	count int,
+	vmCount int,
 	// Disk size in GiB
 	// +default="50"
 	disk int,
@@ -138,8 +138,8 @@ func (m *Replicated) VmCreate(
 		cmd = append(cmd, "--version", version)
 	}
 
-	if count != 0 {
-		cmd = append(cmd, "--count", fmt.Sprintf("%d", count))
+	if vmCount != 0 {
+		cmd = append(cmd, "--count", fmt.Sprintf("%d", vmCount))
 	}
 
 	if disk != 0 {
@@ -148,6 +148,10 @@ func (m *Replicated) VmCreate(
 
 	if instanceType != "" {
 		cmd = append(cmd, "--instance-type", instanceType)
+	}
+
+	if network != "" {
+		cmd = append(cmd, "--network", network)
 	}
 
 	containerWithCmd := replicated.With(cacheBustingExec(cmd))
