@@ -163,7 +163,6 @@ func (m *Replicated) NetworkUpdatePolicy(
 		"/replicated",
 		"network",
 		"update",
-		"policy",
 	}
 
 	if networkID != "" {
