@@ -75,7 +75,11 @@ func (m *Onepassword) FindSecret(
 		return nil, err
 	}
 
-	item, err := client.Items.Get(ctx, vault.ID, itemOverview.ID)
+	item, err := client.ItemsAPI.Get(ctx, vault.ID, itemOverview.ID)
+	if err != nil {
+		fmt.Printf("error getting item: %+v\n", err)
+		return nil, err
+	}
 
 	sectionID, err := findSectionID(item, section)
 	if err != nil {
@@ -133,7 +137,10 @@ func (m *Onepassword) FindSecretRotationSpecs(
 		return nil, err
 	}
 
-	item, err := client.Items.Get(ctx, vault.ID, itemOverview.ID)
+	item, err := client.ItemsAPI.Get(ctx, vault.ID, itemOverview.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	// Find the section where the rotation specs are stored
 	// reccomend the section be named "rotation"
@@ -219,8 +226,9 @@ func (m *Onepassword) PutSecret(
 	io, err := findItem(ctx, client, vault.ID, itemName)
 	if err != nil {
 		if err == ErrItemNotFound {
-			_, err = client.Items.Create(ctx, onepassword.ItemCreateParams{
-				Title: itemName,
+			_, err = client.ItemsAPI.Create(ctx, onepassword.ItemCreateParams{
+				VaultID: vault.ID,
+				Title:   itemName,
 			})
 			if err != nil {
 				return err
@@ -239,47 +247,32 @@ func (m *Onepassword) PutSecret(
 }
 
 func findVault(ctx context.Context, client *onepassword.Client, vaultName string) (*onepassword.VaultOverview, error) {
-	vaultsIterator, err := client.Vaults.ListAll(ctx)
+	vaults, err := client.VaultsAPI.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	for {
-		item, err := vaultsIterator.Next()
-		if err != nil {
-			if err == onepassword.ErrorIteratorDone {
-				return nil, ErrVaultNotFound
-			}
-
-			return nil, err
-		}
-
-		if item.Title == vaultName {
-			return item, nil
+	for _, vault := range vaults {
+		if vault.Title == vaultName {
+			return &vault, nil
 		}
 	}
+	return nil, ErrVaultNotFound
 }
 
 func findItem(ctx context.Context, client *onepassword.Client, vaultID string, itemName string) (*onepassword.ItemOverview, error) {
-	itemsIterator, err := client.Items.ListAll(ctx, vaultID)
+	items, err := client.ItemsAPI.List(ctx, vaultID)
 	if err != nil {
 		return nil, err
 	}
 
-	for {
-		i, err := itemsIterator.Next()
-		if err != nil {
-			if err == onepassword.ErrorIteratorDone {
-				return nil, ErrItemNotFound
-			}
-
-			return nil, err
-		}
-
-		if i.Title == itemName {
-			return i, nil
+	for _, item := range items {
+		fmt.Printf("item: %+v\n", item)
+		if item.Title == itemName {
+			return &item, nil
 		}
 	}
+	return nil, ErrItemNotFound
 }
 
 // findSectionID finds the ID of a section name. The name is case sensitive

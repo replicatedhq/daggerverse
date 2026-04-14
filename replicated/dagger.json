@@ -1,7 +1,8 @@
 {
   "name": "replicated",
-  "engineVersion": "v0.18.2",
+  "engineVersion": "v0.20.5",
   "sdk": {
     "source": "go"
-  }
+  },
+  "disableDefaultFunctionCaching": true
 }

@@ -9,17 +9,17 @@ import (
 
 // nodeGroupJSON is an unexported struct for unmarshaling JSON with the reserved "id" field
 type nodeGroupJSON struct {
-	ID             string   `json:"id"`
-	IsDefault      bool     `json:"is_default"`
-	InstanceType   string   `json:"instance_type"`
-	Name           string   `json:"name"`
-	NodeCount      int      `json:"node_count"`
-	DiskGiB        int      `json:"disk_gib"`
-	CreatedAt      string   `json:"created_at"`
-	RunningAt      string   `json:"running_at"`
-	CreditsPerHour int      `json:"credits_per_hour"`
-	MinutesBilled  int      `json:"minutes_billed"`
-	Nodes          []string `json:"nodes"`
+	ID             string     `json:"id"`
+	IsDefault      bool       `json:"is_default"`
+	InstanceType   string     `json:"instance_type"`
+	Name           string     `json:"name"`
+	NodeCount      int        `json:"node_count"`
+	DiskGiB        int        `json:"disk_gib"`
+	CreatedAt      string     `json:"created_at"`
+	RunningAt      string     `json:"running_at"`
+	CreditsPerHour int        `json:"credits_per_hour"`
+	MinutesBilled  int        `json:"minutes_billed"`
+	Nodes          []nodeJSON `json:"nodes"`
 }
 
 // NodeGroup represents a group of nodes in a cluster
@@ -34,11 +34,15 @@ type NodeGroup struct {
 	RunningAt      string
 	CreditsPerHour int
 	MinutesBilled  int
-	Nodes          []string
+	Nodes          []Node
 }
 
 // nodeGroupFromJSON creates a NodeGroup from a nodeGroupJSON struct
 func nodeGroupFromJSON(ng nodeGroupJSON) NodeGroup {
+	nodes := make([]Node, len(ng.Nodes))
+	for i, n := range ng.Nodes {
+		nodes[i] = nodeFromJSON(n)
+	}
 	return NodeGroup{
 		ItemID:         ng.ID,
 		IsDefault:      ng.IsDefault,
@@ -50,7 +54,24 @@ func nodeGroupFromJSON(ng nodeGroupJSON) NodeGroup {
 		RunningAt:      ng.RunningAt,
 		CreditsPerHour: ng.CreditsPerHour,
 		MinutesBilled:  ng.MinutesBilled,
-		Nodes:          ng.Nodes,
+		Nodes:          nodes,
+	}
+}
+
+// nodeJSON is an unexported struct for unmarshaling JSON with the reserved "node_index" field
+type nodeJSON struct {
+	NodeIndex int `json:"node_index"`
+}
+
+// Node represents a single node in a cluster
+type Node struct {
+	NodeIndex int
+}
+
+// nodeFromJSON creates a Node from a nodeJSON struct
+func nodeFromJSON(n nodeJSON) Node {
+	return Node{
+		NodeIndex: n.NodeIndex,
 	}
 }
 
