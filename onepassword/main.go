@@ -77,7 +77,6 @@ func (m *Onepassword) FindSecret(
 
 	item, err := client.ItemsAPI.Get(ctx, vault.ID, itemOverview.ID)
 	if err != nil {
-		fmt.Printf("error getting item: %+v\n", err)
 		return nil, err
 	}
 
@@ -267,7 +266,6 @@ func findItem(ctx context.Context, client *onepassword.Client, vaultID string, i
 	}
 
 	for _, item := range items {
-		fmt.Printf("item: %+v\n", item)
 		if item.Title == itemName {
 			return &item, nil
 		}
