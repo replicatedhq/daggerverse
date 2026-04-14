@@ -1,5 +1,8 @@
 {
   "name": "onepassword",
-  "sdk": "go",
-  "engineVersion": "v0.13.0"
+  "engineVersion": "v0.20.5",
+  "sdk": {
+    "source": "go"
+  },
+  "disableDefaultFunctionCaching": true
 }
