@@ -1,0 +1,41 @@
+name: Dagger Develop
+
+on:
+  schedule:
+    - cron: "0 0 * * 1" # Run weekly on Monday at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dagger-develop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dagger CLI
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run dagger develop
+        run: |
+          dagger develop -m ./onepassword
+          dagger develop -m ./replicated
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update dagger dependencies"
+          title: "chore: update dagger dependencies"
+          body: |
+            This PR updates Dagger dependencies by running `dagger develop` in both modules.
+
+            - Updated `onepassword` module dependencies
+            - Updated `replicated` module dependencies
+          branch: chore/dagger-develop
+          delete-branch: true
