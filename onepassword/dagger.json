@@ -1,6 +1,6 @@
 {
   "name": "onepassword",
-  "engineVersion": "v0.20.5",
+  "engineVersion": "v0.20.7",
   "sdk": {
     "source": "go"
   },
